@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(NiftiViewerProto VERSION 1.0 LANGUAGES CXX)
+project(Adso VERSION 1.0 LANGUAGES CXX)
 
 # --- 1. Qt Configuration ---
 set(CMAKE_CXX_STANDARD 17)
