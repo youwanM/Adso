@@ -1,4 +1,4 @@
-#include "NiftiVolume.h"
+#include "niftiVolume.h"
 #include <QDir>
 #include <QString>
 #include <cstring>

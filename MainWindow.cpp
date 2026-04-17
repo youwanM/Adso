@@ -6,13 +6,14 @@
 #include <algorithm>
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
+    setWindowTitle("Adso - Anatomical Data Slice Observer");
     QWidget* centralWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
 
     // --- 1. Top Panel: Brightness & Contrast ---
     QHBoxLayout* bcLayout = new QHBoxLayout();
     brightnessSlider = new QSlider(Qt::Horizontal, this);
-    brightnessSlider->setRange(-255, 255);
+    brightnessSlider->setRange(0, 255);
     brightnessSlider->setValue(0);
 
     contrastSlider = new QSlider(Qt::Horizontal, this);
@@ -73,7 +74,7 @@ MainWindow::~MainWindow() {}
 
 void MainWindow::openNiftiFile() {
     QString fileName = QFileDialog::getOpenFileName(this,
-        tr("Open NIfTI Image"), "", tr("NIfTI Files (*.nii *.nii.gz)"));
+    tr("Open NIfTI Image"), "", tr("NIfTI Files (*.nii *.nii.gz)"));
 
     if (fileName.isEmpty()) return;
 
@@ -192,8 +193,5 @@ QImage MainWindow::extractSlice(int axis, int sliceIndex) {
         }
     }
 
-    bool flipHorizontal = false;
-    bool flipVertical = true;    // Fixes the upside-down brain
-
-    return img.mirrored(flipHorizontal, flipVertical);
+    return img.flipped(Qt::Vertical);
 }
