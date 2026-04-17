@@ -1,4 +1,5 @@
-# Adso – Anatomical Data Slice Observer
+# <img src="assets/logo.ico" width="80" height="80"> Adso – Anatomical Data Slice Observer 
+
 
 A small Qt6 desktop application for loading and visualizing NIfTI medical images (`.nii`, `.nii.gz`).
 
