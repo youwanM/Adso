@@ -1,4 +1,4 @@
-# Adso – NIfTI Viewer Prototype
+# Adso – Anatomical Data Slice Observer
 
 A small Qt6 desktop application for loading and visualizing NIfTI medical images (`.nii`, `.nii.gz`).
 
@@ -47,7 +47,7 @@ The project includes a post-build `windeployqt` step (on Windows) to copy requir
 
 ## Run
 
-After building, run the generated executable (`NiftiViewerProto`), then:
+After building, run the generated executable (`Adso`), then:
 
 1. Click **Open NIfTI Image**
 2. Select a `.nii` or `.nii.gz` file
