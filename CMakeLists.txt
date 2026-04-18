@@ -55,6 +55,8 @@ add_executable(${PROJECT_NAME}
     MainWindow.h
     niftiVolume.cpp
     niftiVolume.h
+    ClickableLabel.cpp
+    ClickableLabel.h
     ${APP_ICON_RESOURCE}
 )
 

@@ -29,24 +29,31 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     QHBoxLayout* imagesLayout = new QHBoxLayout();
 
     // A handy lambda to build the UI for each plane
-    auto createViewPanel = [this](QLabel*& label, QSlider*& slider, const QString& title) {
+
+    // Add the 'axis' parameter to the lambda
+    auto createViewPanel = [this](ClickableLabel*& label, QSlider*& slider, const QString& title, int axis) {
         QVBoxLayout* layout = new QVBoxLayout();
-        label = new QLabel(title + "\n(Waiting for image)", this);
+        label = new ClickableLabel(this); // Now using your custom class
         label->setAlignment(Qt::AlignCenter);
         label->setMinimumSize(256, 256);
 
         slider = new QSlider(Qt::Horizontal, this);
-        slider->setEnabled(false); // Disabled until an image is loaded
+        slider->setEnabled(false);
+
+        connect(label, &ClickableLabel::imageClicked, [this, axis, label](int px, int py) {
+                this->handleImageClick(axis, px, py, label);
+            });
 
         layout->addWidget(label);
         layout->addWidget(slider);
         return layout;
-        };
+    };
 
-    imagesLayout->addLayout(createViewPanel(sagittalLabel, sagittalSlider, "Sagittal (X)"));
-    imagesLayout->addLayout(createViewPanel(coronalLabel, coronalSlider, "Coronal (Y)"));
-    imagesLayout->addLayout(createViewPanel(axialLabel, axialSlider, "Axial (Z)"));
-
+    // Look for these lines around line 58-60 in your MainWindow.cpp
+    imagesLayout->addLayout(createViewPanel(sagittalLabel, sagittalSlider, "Sagittal (X)", 0));
+    imagesLayout->addLayout(createViewPanel(coronalLabel, coronalSlider, "Coronal (Y)", 1));
+    imagesLayout->addLayout(createViewPanel(axialLabel, axialSlider, "Axial (Z)", 2));
+    
     // --- Bottom Panel: Controls ---
     openButton = new QPushButton("Open NIfTI Image", this);
     statusLabel = new QLabel("No image loaded.", this);
@@ -79,26 +86,20 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
 MainWindow::~MainWindow() {}
 
-void MainWindow::openNiftiFile() {
-    QString fileName = QFileDialog::getOpenFileName(this,
-    tr("Open NIfTI Image"), "", tr("NIfTI Files (*.nii *.nii.gz)"));
-
+// This is your new shared loading function
+void MainWindow::loadVolume(const QString& fileName) {
     if (fileName.isEmpty()) return;
 
     statusLabel->setText("Loading: " + fileName);
     QCoreApplication::processEvents();
 
     try {
-        // Save the volume to our class variable
         myVolume = NiftiVolume::loadNifti(fileName);
         isLoaded = true;
 
         std::vector<int64_t> shape = myVolume.getShape();
-        int dimX = shape[0];
-        int dimY = shape[1];
-        int dimZ = shape[2];
+        int dimX = shape[0], dimY = shape[1], dimZ = shape[2];
 
-        // Configure the sliders to match the dimensions of the file
         sagittalSlider->setRange(0, dimX - 1);
         coronalSlider->setRange(0, dimY - 1);
         axialSlider->setRange(0, dimZ - 1);
@@ -107,19 +108,28 @@ void MainWindow::openNiftiFile() {
         coronalSlider->setEnabled(true);
         axialSlider->setEnabled(true);
 
-        // Setting the value automatically triggers updateViews() to draw the first frame!
         sagittalSlider->setValue(dimX / 2);
         coronalSlider->setValue(dimY / 2);
         axialSlider->setValue(dimZ / 2);
 
-        statusLabel->setText(QString("Successfully loaded! Dimensions: %1 x %2 x %3").arg(dimX).arg(dimY).arg(dimZ));
-
+        statusLabel->setText(QString("Successfully loaded: %1x%2x%3").arg(dimX).arg(dimY).arg(dimZ));
+        
+        // Initial draw
+        updateViews(); 
     }
     catch (const std::exception& e) {
         isLoaded = false;
-        QMessageBox::critical(this, "Error", QString("Failed to load NIfTI image:\n") + e.what());
+        QMessageBox::critical(this, "Error", QString("Failed to load:\n") + e.what());
         statusLabel->setText("Error loading file.");
     }
+}
+
+// Now your button click just calls the shared function
+void MainWindow::openNiftiFile() {
+    QString fileName = QFileDialog::getOpenFileName(this,
+        tr("Open NIfTI Image"), "", tr("NIfTI Files (*.nii *.nii.gz)"));
+    
+    loadVolume(fileName);
 }
 
 // This function acts as the "Game Loop" rendering engine for your app
@@ -138,31 +148,35 @@ void MainWindow::updateViews() {
     // 2. Draw the tracking crosshairs on top of the images
     auto drawCrosshair = [&](QImage& img, int axis) {
         QPainter p(&img);
-        p.setPen(QPen(Qt::red, 1)); // 1-pixel wide red line
+        p.setPen(QPen(Qt::red, 1));
 
-        if (axis == 0) { // Sagittal (Shows Y and Z)
+        std::vector<int64_t> shape = myVolume.getShape();
+        int dimX = shape[0], dimY = shape[1], dimZ = shape[2];
+
+        if (axis == 0) { // Sagittal (Y, Z)
             p.drawLine(currentY, 0, currentY, img.height());
-            p.drawLine(0, currentZ, img.width(), currentZ);
+            p.drawLine(0, (dimZ - 1) - currentZ, img.width(), (dimZ - 1) - currentZ);
         }
-        else if (axis == 1) { // Coronal (Shows X and Z)
+        else if (axis == 1) { // Coronal (X, Z)
             p.drawLine(currentX, 0, currentX, img.height());
-            p.drawLine(0, currentZ, img.width(), currentZ);
+            p.drawLine(0, (dimZ - 1) - currentZ, img.width(), (dimZ - 1) - currentZ);
         }
-        else if (axis == 2) { // Axial (Shows X and Y)
+        else if (axis == 2) { // Axial (X, Y)
             p.drawLine(currentX, 0, currentX, img.height());
-            p.drawLine(0, currentY, img.width(), currentY);
+            // FIX: Draw the Y-line inverted so it matches the flipped image
+            p.drawLine(0, (dimY - 1) - currentY, img.width(), (dimY - 1) - currentY);
         }
-        };
+    };
 
     drawCrosshair(sagImg, 0);
     drawCrosshair(corImg, 1);
     drawCrosshair(axiImg, 2);
 
     // 3. Display the final images on the UI
-    sagittalLabel->setPixmap(QPixmap::fromImage(sagImg).scaled(256, 256, Qt::KeepAspectRatio));
-    coronalLabel->setPixmap(QPixmap::fromImage(corImg).scaled(256, 256, Qt::KeepAspectRatio));
-    axialLabel->setPixmap(QPixmap::fromImage(axiImg).scaled(256, 256, Qt::KeepAspectRatio));
-}
+    sagittalLabel->setPixmap(QPixmap::fromImage(sagImg).scaled(sagittalLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    coronalLabel->setPixmap(QPixmap::fromImage(corImg).scaled(coronalLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    axialLabel->setPixmap(QPixmap::fromImage(axiImg).scaled(axialLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
 
 // Math logic to extract the slice and apply brightness/contrast
 QImage MainWindow::extractSlice(int axis, int sliceIndex) {
@@ -201,4 +215,35 @@ QImage MainWindow::extractSlice(int axis, int sliceIndex) {
     }
 
     return img.flipped(Qt::Vertical);
+}
+
+void MainWindow::handleImageClick(int axis, int px, int py, ClickableLabel* label) {
+    if (!isLoaded || label->pixmap().isNull()) return;
+
+    QSize pixSize = label->pixmap().size();
+    int offsetX = (label->width() - pixSize.width()) / 2;
+    int offsetY = (label->height() - pixSize.height()) / 2;
+
+    double normX = std::clamp((double)(px - offsetX) / pixSize.width(), 0.0, 1.0);
+    double normY = std::clamp((double)(py - offsetY) / pixSize.height(), 0.0, 1.0);
+    
+    // Create an inverted version for vertical movements
+    double normYInverted = 1.0 - normY;
+
+    std::vector<int64_t> shape = myVolume.getShape();
+    int dimX = shape[0], dimY = shape[1], dimZ = shape[2];
+
+    if (axis == 0) { // Sagittal
+        coronalSlider->setValue(normX * (dimY - 1));
+        axialSlider->setValue(normYInverted * (dimZ - 1)); // Z is vertical here
+    } 
+    else if (axis == 1) { // Coronal
+        sagittalSlider->setValue(normX * (dimX - 1));
+        axialSlider->setValue(normYInverted * (dimZ - 1)); // Z is vertical here
+    } 
+    else if (axis == 2) { // Axial
+        sagittalSlider->setValue(normX * (dimX - 1));
+        // FIX: Vertical in Axial is Y. Use inverted so Top click = High Y
+        coronalSlider->setValue(normYInverted * (dimY - 1));
+    }
 }

@@ -10,6 +10,7 @@
 #include <QPixmap>
 #include <QPainter> // For drawing the crosshairs
 #include "niftiVolume.h"
+#include "ClickableLabel.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -18,18 +19,21 @@ public:
     MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
+    void loadVolume(const QString& fileName);
+
 private slots:
+    void handleImageClick(int axis, int px, int py,  ClickableLabel* label);
     void openNiftiFile();
-    void updateViews(); // Triggered whenever ANY slider moves
+    void updateViews();
 
 private:
     QPushButton* openButton;
     QLabel* statusLabel;
 
     // View Labels
-    QLabel* sagittalLabel;
-    QLabel* coronalLabel;
-    QLabel* axialLabel;
+    ClickableLabel* sagittalLabel;
+    ClickableLabel* coronalLabel;
+    ClickableLabel* axialLabel;
 
     // Slice Sliders
     QSlider* sagittalSlider; // X-axis
