@@ -7,6 +7,7 @@
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle("Adso - Anatomical Data Slice Observer");
+    setWindowIcon(QIcon(":/assets/logo.ico"));
     QWidget* centralWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
 

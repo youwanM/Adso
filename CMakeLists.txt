@@ -23,7 +23,9 @@ if(APPLE)
     set_source_files_properties(${MACOS_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     set(APP_ICON_RESOURCE ${MACOS_ICON})
 elseif(WIN32)
-    set(APP_ICON_RESOURCE ${WIN32_ICON})
+    set(RES_FILE "${CMAKE_CURRENT_BINARY_DIR}/app_icon.rc")
+    file(WRITE "${RES_FILE}" "IDI_ICON1 ICON DISCARDABLE \"${WIN32_ICON}\"")
+    set(APP_ICON_RESOURCE ${RES_FILE})
 endif()
 
 # --- 3. Dependencies (FetchContent) ---
@@ -57,6 +59,7 @@ add_executable(${PROJECT_NAME}
     niftiVolume.h
     ClickableLabel.cpp
     ClickableLabel.h
+    resources.qrc
     ${APP_ICON_RESOURCE}
 )
 
