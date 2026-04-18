@@ -10,7 +10,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     QWidget* centralWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
 
-    // --- 1. Top Panel: Brightness & Contrast ---
+    // --- Top Panel: Brightness & Contrast ---
     QHBoxLayout* bcLayout = new QHBoxLayout();
     brightnessSlider = new QSlider(Qt::Horizontal, this);
     brightnessSlider->setRange(0, 255);
@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     bcLayout->addWidget(new QLabel("Contrast:"));
     bcLayout->addWidget(contrastSlider);
 
-    // --- 2. Middle Panel: Images & Slice Sliders ---
+    // --- Middle Panel: Images & Slice Sliders ---
     QHBoxLayout* imagesLayout = new QHBoxLayout();
 
     // A handy lambda to build the UI for each plane
@@ -47,19 +47,26 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     imagesLayout->addLayout(createViewPanel(coronalLabel, coronalSlider, "Coronal (Y)"));
     imagesLayout->addLayout(createViewPanel(axialLabel, axialSlider, "Axial (Z)"));
 
-    // --- 3. Bottom Panel: Controls ---
+    // --- Bottom Panel: Controls ---
     openButton = new QPushButton("Open NIfTI Image", this);
     statusLabel = new QLabel("No image loaded.", this);
+
+    // --- Copyright ---
+    QLabel* copyrightLabel = new QLabel("Copyright (C) 2026 Youwan Mahé", this);
+    copyrightLabel->setAlignment(Qt::AlignRight);
+    // Setting small font and gray color to keep it subtle
+    copyrightLabel->setStyleSheet("font-size: 9px; color: #888888; margin-top: 5px;");
 
     mainLayout->addLayout(bcLayout);
     mainLayout->addLayout(imagesLayout);
     mainLayout->addWidget(openButton);
     mainLayout->addWidget(statusLabel);
+    mainLayout->addWidget(copyrightLabel);
 
     setCentralWidget(centralWidget);
     resize(900, 500);
 
-    // --- 4. Connect Signals ---
+    // --- Connect Signals ---
     connect(openButton, &QPushButton::clicked, this, &MainWindow::openNiftiFile);
 
     // Wire every single slider to our updateViews function
