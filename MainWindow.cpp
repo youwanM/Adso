@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QString>
 #include <QCoreApplication>
+#include <QApplication>
 #include <algorithm>
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
@@ -91,7 +92,13 @@ MainWindow::~MainWindow() {}
 void MainWindow::loadVolume(const QString& fileName) {
     if (fileName.isEmpty()) return;
 
-    statusLabel->setText("Loading: " + fileName);
+    // --- 1. ENTER LOADING STATE ---
+    statusLabel->setText("Loading and standardizing orientation...");
+    openButton->setText("Loading...");
+    openButton->setEnabled(false); // Prevent the user from clicking it again
+    QApplication::setOverrideCursor(Qt::WaitCursor); // Show the OS loading cursor (spinner/hourglass)
+
+    // Force Qt to update the screen immediately before the main thread blocks
     QCoreApplication::processEvents();
 
     try {
@@ -114,15 +121,20 @@ void MainWindow::loadVolume(const QString& fileName) {
         axialSlider->setValue(dimZ / 2);
 
         statusLabel->setText(QString("Successfully loaded: %1x%2x%3").arg(dimX).arg(dimY).arg(dimZ));
-        
+
         // Initial draw
-        updateViews(); 
+        updateViews();
     }
     catch (const std::exception& e) {
         isLoaded = false;
         QMessageBox::critical(this, "Error", QString("Failed to load:\n") + e.what());
         statusLabel->setText("Error loading file.");
     }
+
+    // --- 2. EXIT LOADING STATE ---
+    openButton->setText("Open NIfTI Image");
+    openButton->setEnabled(true);
+    QApplication::restoreOverrideCursor(); // Bring back the normal mouse pointer
 }
 
 // Now your button click just calls the shared function
